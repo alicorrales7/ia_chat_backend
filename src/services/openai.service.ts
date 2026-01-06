@@ -1,12 +1,20 @@
 import OpenAI from "openai";
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY is not defined");
-}
+let client: OpenAI | null = null;
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+function getClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not defined");
+  }
+
+  if (!client) {
+    client = new OpenAI({ apiKey });
+  }
+
+  return client;
+}
 
 const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
@@ -16,7 +24,7 @@ export async function askOpenAI(params: {
 }): Promise<string> {
   const { system, user } = params;
 
-  const resp = await client.chat.completions.create({
+  const response = await getClient().chat.completions.create({
     model,
     messages: [
       { role: "system", content: system },
@@ -25,5 +33,5 @@ export async function askOpenAI(params: {
     temperature: 0.3,
   });
 
-  return resp.choices[0]?.message?.content?.trim() || "";
+  return response.choices[0]?.message?.content?.trim() || "";
 }
