@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-dotenv.config(); // IMPORTANTE: primero
+dotenv.config(); // primero siempre
 
 import express from "express";
 import cors from "cors";
@@ -10,22 +10,19 @@ import { chatRouter } from "./routes/chat.route";
 const app = express();
 
 /**
- * CORS (para navegador)
- * - Agrega aquí los dominios que pueden llamar al backend desde frontend.
- * - Incluye también el dominio de "preview" de Duda si están probando ahí.
+ * CORS whitelist:
+ * Agrega aquí los dominios finales y los previews/staging si los usan.
  */
 const allowedOrigins = [
   "https://deepframemedia.com",
   "https://www.deepframemedia.com",
-  // Ejemplos (descomenta/ajusta si tu dev usa preview):
-  // "https://your-site.preview.duda.co",
-  // "https://your-site.editorx.io",
+  // si usan preview en Duda, agrega aquí el dominio exacto:
+  // "https://xxxxx.preview.duda.co",
 ];
 
 app.use(helmet());
 app.use(express.json());
 
-// CORS correcto para apps web (con whitelist)
 app.use(
   cors({
     origin: (origin, cb) => {
@@ -41,10 +38,14 @@ app.use(
   })
 );
 
-// Preflight
-app.options("*", cors());
+/**
+ * PRE-FLIGHT FIX:
+ * En algunos setups, app.options("*") crashea por path-to-regexp.
+ * Usamos regex para permitir todos los OPTIONS sin romper el server.
+ */
+app.options(/.*/, cors());
 
-// Servir archivos estáticos si tienes /public (ej: widget.js)
+// Servir estáticos si tienes /public (ej: widget.js si lo haces después)
 app.use(express.static("public"));
 
 // Health
@@ -55,9 +56,8 @@ app.get("/health", (_req, res) => {
 // API
 app.use("/v1", chatRouter);
 
-// Railway inyecta PORT
+// Railway PORT
 const port = Number(process.env.PORT || 3000);
-
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
